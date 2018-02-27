@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import CoreData
 
 class ToDoListViewController: UITableViewController {
 
@@ -14,7 +15,8 @@ class ToDoListViewController: UITableViewController {
     
 //    let defaults = UserDefaults.standard
     
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Item.pList")
+//    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Item.pList")
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,27 +24,8 @@ class ToDoListViewController: UITableViewController {
         
         
         
-        print(dataFilePath!)
-        
-//        let item = Item()
-//        item.title = "Find Mike"
-//        itemArray.append(item)
-//
-//        let item1 = Item()
-//        item1.title = "Buy Eggs"
-//        itemArray.append(item1)
-//
-//
-//        let item2 = Item()
-//        item2.title = "Destroy Demogorgon"
-//        itemArray.append(item2)
-
-        //loading with UserDefaults pList
-//        if let items = defaults.array(forKey: "toDoeyArray") as? [Item] {
-//            itemArray = items
-//        }
-        
-        //Loading while using NSCoder FileManager.defaults
+        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
+ 
         loadItems()
         
     }
@@ -80,22 +63,14 @@ class ToDoListViewController: UITableViewController {
     //MARK - Table View Delegate Method
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-//        if itemArray[indexPath.row].done == false {
-//            itemArray[indexPath.row].done = true
-//        } else {
-//            itemArray[indexPath.row].done = false
-//        }//equal to below code
-        
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         
+        //to delete the item onClick
+//        context.delete(itemArray[indexPath.row])
+//        itemArray.remove(at: indexPath.row)
+        
         saveItems()
-        
-//        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
-//            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-//        } else {
-//            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-//        }
-        
+                
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -110,9 +85,9 @@ class ToDoListViewController: UITableViewController {
             //what will happen once the user clicks the Add item button on our UIAlert
             print(textField.text!)
             
-            let item = Item()
+            let item = Item(context: self.context)
             item.title = textField.text!
-            
+            item.done = false
             self.itemArray.append(item)
         
 //            self.defaults.set(self.itemArray, forKey: "toDoeyArray")
@@ -134,27 +109,24 @@ class ToDoListViewController: UITableViewController {
     
     //MARK - Model Manipulation Methods
     func saveItems(){
-        let encoder = PropertyListEncoder()
+        
         do {
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+           try context.save()
         } catch {
-            print("Error encoding item array,\(error)")
+            print("Error saving context,\(error)")
         }
         self.tableView.reloadData()
 
     }
-    
+
     func loadItems(){
-        if let data = try? Data(contentsOf: dataFilePath!) {
-                let decoder = PropertyListDecoder()
-            do {
-                   itemArray = try decoder.decode([Item].self, from: data)
-            }catch {
-                print("Error while decoding item array, \(error)")
-            }
-            
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        do {
+            itemArray = try context.fetch(request)
+        } catch {
+            print("Erroe fetching core data,\(error)")
         }
     }
+    
 }
 
